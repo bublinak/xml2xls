@@ -29,7 +29,10 @@ def list_files():
 	for file in os.listdir(input_dir):
 		if file.endswith(".xml"):
 			files.append(file)
-	files.sort()
+			print("Found ", len(files), "files", end='\r')
+	#sort files by date, filename format: XXXXXXX_XXXXXXX_YYYYMMDD_HHMMSS.xml
+	print("\nSorting...")
+	files.sort(key=lambda x: datetime.strptime(x.split('_')[2] + '_' + x.split('_')[3][0:6], '%Y%m%d_%H%M%S'))
 	return files
 # Read xml file to object
 def read_xml(file):
@@ -70,6 +73,19 @@ def excel_date(date1):
 
 # Main function
 def main():
+	print("Starting xml2xls converter...")
+	# Check for directories
+	if not os.path.exists(input_dir):
+		os.makedirs(input_dir)
+	if not os.path.exists(output_dir):
+		os.makedirs(output_dir)
+	# Check if template files exists
+	if not os.path.exists('templates/reclamacion_template.xlsx'):
+		print("Error: File templates/reclamacion_template.xlsx not found")
+		return
+	if not os.path.exists('templates/results_template.xlsx'):
+		print("Error: File templates/results_template.xlsx not found")
+		return
 	# List files
 	files = list_files()
 	# Create workbook for results
@@ -77,20 +93,12 @@ def main():
 	result_sheet = results.active
 	iterations = 0
 	last_part_end = 0
-	sorted_files = {}
-	xmls = {}
-	# Process files
-	for file in files:
-		# Read xml file
-		xmls[file] = read_xml(file)
-	
-	# Sort files by date
-	files.sort(key=lambda x: xmls[x][keys[offset]])
 
 	for file in files:
+		#print("Processing file %d of %d" % (iterations+1, len(files)), end='\r')
 		# Read template excel file
 		wb = openpyxl.load_workbook('templates/reclamacion_template.xlsx')
-		root = xmls[file]
+		root = read_xml(file)
 		# Select active sheet
 		sheet = wb.active
 		# Write data to excel
@@ -145,6 +153,7 @@ def main():
 		iterations += 1
 	# Save results
 	results.save("results.xlsx")
+	print("Processing finished.")
 
 
 
